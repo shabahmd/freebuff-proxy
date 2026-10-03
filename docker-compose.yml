@@ -7,8 +7,10 @@
 #   - host 模式下不要写 ports（官方文档：会被忽略并告警）；应用直接监听宿主 0.0.0.0:<PORT>
 services:
   freebuff-proxy:
-    # 默认用 GHCR 预构建镜像（发版时自动推送）；想本地构建就改成 build: . 并删掉 image 行
-    image: ghcr.io/hengxin666/freebuff-proxy:latest
+    # 本地构建：为了让 src/upstream/client.js 的登录重试补丁生效，改用 build: .
+    # Dockerfile 的 COPY . . 会把 cli-bridge/bun 一起烘进镜像
+    # （.dockerignore 已排除 data/ 与 credentials，凭据不会进镜像）。
+    build: .
     container_name: freebuff-proxy
     restart: unless-stopped
     network_mode: host
@@ -28,3 +30,6 @@ services:
     volumes:
       # 宿主机 ./data → 容器 /data（凭据/配置/用户/会话/代理设置都在这）
       - ./data:/data
+      # 官方客户端 AppImage 里提取的 bun（1.4.2）→ bridge.mjs 解析优先级 #2（本目录 ./bun）
+      # 预构建镜像不含此二进制（79MB 不入 git），本地用 tools/fetch-bun.sh 取得
+      - ./cli-bridge/bun:/app/cli-bridge/bun:ro
